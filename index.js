@@ -13,7 +13,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:8080",
-      "https://fe-6-vite-dot-asisten-tcc-a.as.r.appspot.com",
+      "https://fe-7-vite-dot-asisten-tcc-a.as.r.appspot.com",
     ], // <- Diganti sama alamat front-end
     credentials: true,
   })
