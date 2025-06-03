@@ -1,10 +1,22 @@
+### REGISTER
+POST http://localhost:5000/users 
+Authorization: "Bearer access_token"
+Content-Type: application/json
+
+{
+    "name": "tes",
+    "email": "mido@mido",
+    "gender": "Male",
+    "password": "12345678"
+}
+
 ### LOGIN
 POST http://localhost:5000/login
 Content-Type: application/json
 
 {
-    "email": "tesss@tessss.com",
-    "password": "123456"
+    "email": "mido@mido",
+    "password": "falasol"
 }
 
 ### LOGOUT (Ganti refresh_token dengan refresh token yg sesuai)
@@ -22,18 +34,6 @@ Authorization: "Bearer access_token"
 ### GET USER BY ID
 GET http://localhost:5000/users/3
 Authorization: "Bearer access_token"
-
-### POST USER
-POST http://localhost:5000/users 
-Authorization: "Bearer access_token"
-Content-Type: application/json
-
-{
-    "name": "tes",
-    "email": "tes@tes.com",
-    "gender": "Male",
-    "password": "12345678"
-}
 
 ### EDIT USER
 PUT http://localhost:5000/users/3

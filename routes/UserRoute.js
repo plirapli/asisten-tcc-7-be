@@ -18,6 +18,7 @@ router.get("/token", getAccessToken);
 
 // Endpoint buat login & logout
 router.post("/login", login);
+router.post("/register", createUser);
 router.delete("/logout", logout);
 
 // Endpoint CRUD users
@@ -26,7 +27,6 @@ router.delete("/logout", logout);
 // makanya kita kasih middleware fungsi verifyToken yg udah kita buat sebelumnya.
 router.get("/users", verifyToken, getUsers);
 router.get("/users/:id", verifyToken, getUserById);
-router.post("/users", createUser);
 router.put("/users/:id", verifyToken, updateUser);
 router.delete("/users/:id", verifyToken, deleteUser);
 

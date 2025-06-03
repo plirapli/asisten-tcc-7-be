@@ -5,17 +5,20 @@ import "dotenv/config";
 import cookieParser from "cookie-parser";
 
 const app = express();
-app.set("view engine", "ejs");
+const port = 5000;
 
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:3000", // <- Diganti sama alamat front-end
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:8080",
+      "https://fe-6-vite-dot-asisten-tcc-a.as.r.appspot.com",
+    ], // <- Diganti sama alamat front-end
     credentials: true,
   })
 );
 app.use(express.json());
-app.get("/", (req, res) => res.render("index"));
 app.use(UserRoute);
 
-app.listen(5000, () => console.log("Server connected"));
+app.listen(port, () => console.log(`Server connected on port ${port}`));

@@ -1,6 +1,9 @@
 import User from "../models/UserModel.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { compareArrays, ErrorWithStatusCode } from "../utils/index.js";
+
+const field = ["name", "email", "gender"];
 
 // GET USER
 async function getUsers(req, res) {
@@ -33,12 +36,8 @@ async function getUserById(req, res) {
     const user = await User.findOne({ where: { id: req.params.id } });
 
     // Cek user yg diambil ada apa engga
-    // Kalo user gada, masuk ke catch dengan message "User tidak ditemukan 😮" (400)
-    if (!user) {
-      const error = new Error("User tidak ditemukan 😮");
-      error.statusCode = 400;
-      throw error;
-    }
+    // Kalo user gada, masuk ke catch dengan message "User tidak ditemukan 😮" (404)
+    if (!user) throw new ErrorWithStatusCode("User tidak ditemukan 😮", 404);
 
     // Kalo user ada, kirim respons sukses (200)
     return res.status(200).json({
@@ -62,11 +61,12 @@ async function createUser(req, res) {
 
     // Ngecek apakah request body lengkap apa engga
     // Kalo kurang lengkap, masuk ke catch degnan error message "Field cannot be empty 😠" (400)
-    if (Object.keys(req.body).length < 4) {
-      const error = new Error("Field cannot be empty 😠");
-      error.statusCode = 400;
-      throw error;
-    }
+    if (!compareArrays(field, Object.keys(req.body)))
+      throw new ErrorWithStatusCode("Field cannot be empty 😠", 400);
+
+    // Cek apakah email telah terdaftar atau belum
+    const user = await User.findOne({ where: { email } });
+    if (user) throw new ErrorWithStatusCode("Email telah terdaftar", 404);
 
     // Mengenkripsi password, membuat hash sebanyak 2^5 (32) iterasi
     const encryptPassword = await bcrypt.hash(password, 5);
@@ -115,21 +115,14 @@ async function updateUser(req, res) {
     }
 
     // Ngecek apakah request body lengkap apa engga
-    if (Object.keys(req.body).length < 4) {
-      const error = new Error("Field cannot be empty 😠");
-      error.statusCode = 400;
-      throw error;
-    }
+    if (!compareArrays(field, Object.keys(req.body)))
+      throw new ErrorWithStatusCode("Field cannot be empty 😠", 400);
 
     // Ngecek apakah id user yg diupdate ada apa ga
-    const ifUserExist = await User.findOne({ where: { id: req.params.id } });
-
+    const isUserExist = await User.findOne({ where: { id: req.params.id } });
     // Kalo gada, masuk ke catch dengan message "User tidak ditemukan 😮" (400)
-    if (!ifUserExist) {
-      const error = new Error("User tidak ditemukan 😮");
-      error.statusCode = 400;
-      throw error;
-    }
+    if (!isUserExist)
+      throw new ErrorWithStatusCode("User tidak ditemukan 😮", 404);
 
     /*
       Kalo ada, lakukan query update ke db
@@ -153,13 +146,10 @@ async function updateUser(req, res) {
     /*
       Cek apakah query berhasil atau engga
       Kalo gagal (tidak ada row yg affected), masuk ke catch,
-      kasi message "Tidak ada data yang berubah" (400)
+      kasi message "Tidak ada data yang berubah" (404)
     */
-    if (result[0] == 0) {
-      const error = new Error("Tidak ada data yang berubah");
-      error.statusCode = 400;
-      throw error;
-    }
+    if (result[0] == 0)
+      throw new ErrorWithStatusCode("Tidak ada data yang berubah", 404);
 
     // Kalo berhasil, kirim respons sukses (200)
     return res.status(200).json({
@@ -178,14 +168,11 @@ async function updateUser(req, res) {
 async function deleteUser(req, res) {
   try {
     // Ngecek apakah id user yg mau di-delete ada apa ga
-    const ifUserExist = await User.findOne({ where: { id: req.params.id } });
+    const isUserExist = await User.findOne({ where: { id: req.params.id } });
 
-    // Kalo gada, masuk ke catch dengan message "User tidak ditemukan 😮" (400)
-    if (!ifUserExist) {
-      const error = new Error("User tidak ditemukan 😮");
-      error.statusCode = 400;
-      throw error;
-    }
+    // Kalo gada, masuk ke catch dengan message "User tidak ditemukan 😮" (404)
+    if (!isUserExist)
+      throw new ErrorWithStatusCode("User tidak ditemukan 😮", 404);
 
     /*
       Kalo ada, lakukan query delete user berdasarkan id ke db
@@ -199,13 +186,10 @@ async function deleteUser(req, res) {
     /*
       Cek apakah query berhasil atau engga
       Kalo gagal (tidak ada row yg affected), masuk ke catch,
-      kasi message "Tidak ada data yang berubah" (400)
+      kasi message "Tidak ada data yang berubah" (404)
     */
-    if (result == 0) {
-      const error = new Error("Tidak ada data yang berubah");
-      error.statusCode = 400;
-      throw error;
-    }
+    if (result[0] == 0)
+      throw new ErrorWithStatusCode("Tidak ada data yang berubah", 404);
 
     // Kalo berhasil, kirim respons sukses (200)
     return res.status(200).json({
@@ -250,7 +234,7 @@ async function login(req, res) {
         const accessToken = jwt.sign(
           safeUserData, // <- Payload yang akan disimpan di token
           process.env.ACCESS_TOKEN_SECRET, // <- Secret key untuk verifikasi
-          { expiresIn: "30s" } // <- Masa berlaku token
+          { expiresIn: "15m" } // <- Masa berlaku token
         );
 
         // Membuat refresh token dengan masa berlaku 1 hari
@@ -303,15 +287,11 @@ async function login(req, res) {
         });
       } else {
         // Kalau password salah, masuk ke catch, kasi message "Password atau email salah" (400)
-        const error = new Error("Password atau email salah");
-        error.statusCode = 400;
-        throw error;
+        throw new ErrorWithStatusCode("Password atau email salah", 400);
       }
     } else {
       // Kalau email salah, masuk ke catch, kasi message "Password atau email salah" (400)
-      const error = new Error("Paassword atau email salah");
-      error.statusCode = 400;
-      throw error;
+      throw new ErrorWithStatusCode("Password atau email salah", 400);
     }
   } catch (error) {
     return res.status(error.statusCode || 500).json({
@@ -328,11 +308,8 @@ async function logout(req, res) {
     const refreshToken = req.cookies.refreshToken;
 
     // Ngecek ada ga refresh tokennya, kalo ga ada kirim status code 401
-    if (!refreshToken) {
-      const error = new Error("Refresh token tidak ada");
-      error.statusCode = 401;
-      throw error;
-    }
+    if (!refreshToken)
+      throw new ErrorWithStatusCode("Refresh token tidak ada", 401);
 
     // Kalau ada, cari user berdasarkan refresh token tadi
     const user = await User.findOne({
@@ -340,22 +317,14 @@ async function logout(req, res) {
     });
 
     // Kalau user gaada, kirim status code 401
-    if (!user.refresh_token) {
-      const error = new Error("User tidak ditemukan");
-      error.statusCode = 401;
-      throw error;
-    }
+    if (!user.refresh_token)
+      throw new ErrorWithStatusCode("User tidak ditemukan", 401);
 
     // Kalau user ketemu (ada), ambil user id
     const userId = user.id;
 
     // Hapus refresh token dari DB berdasarkan user id tadi
-    await User.update(
-      { refresh_token: null },
-      {
-        where: { id: userId },
-      }
-    );
+    await User.update({ refresh_token: null }, { where: { id: userId } });
 
     // Ngehapus refresh token yg tersimpan di cookie
     res.clearCookie("refreshToken");
